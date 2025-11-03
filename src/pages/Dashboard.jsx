@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 const Dashboard = () => {
-  const { getTotalItems } = useCart()
+  // Fallback until cart context exists
+  const getTotalItems = () => 0
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [lastOrder, setLastOrder] = useState(null)
@@ -15,7 +16,7 @@ const Dashboard = () => {
         const token = localStorage.getItem("token");
         if (!token) return navigate("/login");
 
-        const res = await fetch("/api/auth/me", {
+        const res = await fetch("http://localhost:5000/api/auth/me", {
             headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -26,16 +27,17 @@ const Dashboard = () => {
 
         const data = await res.json();
         setUser(data.user);
-        await loadDashboardData(data.user._id);
+        await loadDashboardData(data.user.id || data.user._id);
     };
     checkAuth()
   }, [navigate])
 
   const loadDashboardData = async (userId) => {
     try {
+        const token = localStorage.getItem("token");
         const [lastOrderRes, trendingItemsRes] = await Promise.all([
-        fetch(`/api/orders/last/${userId}`),
-        fetch(`/api/items/trending?limit=4`)
+        fetch(`http://localhost:5000/api/orders/last`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`http://localhost:5000/api/items/trending?limit=4`)
         ]);
 
         const lastOrderData = await lastOrderRes.json();
@@ -123,7 +125,7 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}!
+            Welcome back, {user?.fullName || user?.email?.split('@')[0]}!
           </h2>
           <p className="text-gray-600">Here's what's happening with your orders today.</p>
         </div>
@@ -248,7 +250,7 @@ const Dashboard = () => {
           {trendingItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {trendingItems.map((item) => (
-                <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div key={item._id || item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="h-48 bg-gray-200 flex items-center justify-center">
                     {item.image_url ? (
                       <img 

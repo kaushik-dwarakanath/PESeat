@@ -61,7 +61,8 @@ function Login() {
       throw new Error(data.message || "Login failed");
     }
 
-    // Optionally store user info (for dashboard)
+    // Store token and user info
+    if (data.token) localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
 
     // Navigate to dashboard

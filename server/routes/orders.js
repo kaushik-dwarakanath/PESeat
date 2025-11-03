@@ -1,12 +1,13 @@
 import express from "express";
 import Order from "../models/Order.js";
+import { verifyJWT } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Get last order of user
-router.get("/last/:userId", async (req, res) => {
+// Get last order of authenticated user
+router.get("/last", verifyJWT, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id;
     const lastOrder = await Order.find({ userId })
       .sort({ createdAt: -1 })
       .limit(1);

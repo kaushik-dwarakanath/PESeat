@@ -84,8 +84,8 @@ function Register() {
         throw new Error(data.message || "Registration failed");
       }
 
-      alert("Registration successful!");
-      navigate("/dashboard");
+      alert("Registration successful! Please log in.");
+      navigate("/login");
     } catch (error) {
       setErrors({ general: error.message });
     } finally {

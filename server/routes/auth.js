@@ -1,5 +1,6 @@
 import express from "express";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 const router = express.Router();
@@ -9,11 +10,21 @@ router.post("/register", async (req, res) => {
   try {
     const { fullName, email, password, phoneNumber, studentId } = req.body;
 
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email already registered" });
+    // Basic validation
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ message: "Full name, email and password are required" });
     }
+
+    // Check for duplicates
+    const [emailExists, phoneExists, studentExists] = await Promise.all([
+      User.findOne({ email }),
+      phoneNumber ? User.findOne({ phoneNumber }) : null,
+      studentId ? User.findOne({ studentId }) : null,
+    ]);
+
+    if (emailExists) return res.status(400).json({ message: "Email already registered" });
+    if (phoneExists) return res.status(400).json({ message: "Phone number already registered" });
+    if (studentExists) return res.status(400).json({ message: "SRN already registered" });
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -32,6 +43,11 @@ router.post("/register", async (req, res) => {
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     console.error(error);
+    if (error?.code === 11000) {
+      // Duplicate key error from MongoDB
+      const dupField = Object.keys(error.keyPattern || {})[0] || "field";
+      return res.status(400).json({ message: `${dupField} already exists` });
+    }
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -52,9 +68,13 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Success — send user info (no password)
+    // Issue JWT
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+    // Success — send token and user info (no password)
     res.status(200).json({
       message: "Login successful",
+      token,
       user: {
         id: user._id,
         fullName: user.fullName,
