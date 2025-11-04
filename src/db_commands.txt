@@ -1,0 +1,38 @@
+mongosh 
+use canteenDB
+db.items.insertMany([
+  {
+    name: "Chicken Biriyani",
+    price: 180,
+    image_url: "http://localhost:5000/images/chicken_biriyani.jpg",
+    rating: 4.5,
+    total_orders: 250,
+    category: "main-course"
+  },
+  {
+    name: "Paneer Butter Masala",
+    price: 160,
+    image_url: "http://localhost:5000/images/paneer_butter_masala.jpeg",
+    rating: 4.7,
+    total_orders: 180,
+    category: "main-course"
+  },
+  {
+    name: "Coffee",
+    price: 30,
+    image_url: "http://localhost:5000/images/coffee.jpeg",
+    rating: 4.2,
+    total_orders: 300,
+    category: "beverages"
+  },
+  {
+    name: "Gulab Jamun",
+    price: 35,
+    image_url: "http://localhost:5000/images/gulab_jamun.jpg",
+    rating: 4.8,
+    total_orders: 220,
+    category: "desserts"
+  }
+])
+
+db.items.find().pretty()
