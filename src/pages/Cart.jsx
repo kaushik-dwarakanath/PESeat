@@ -1,25 +1,54 @@
-import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 
 const Cart = () => {
-  // Local cart state to decouple from external context for now
-  const [cart, setCart] = useState({ items: [] })
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [cart, setCart] = useState({ items: [], subtotal: 0, tax: 0, total: 0 })
+  const [message, setMessage] = useState("")
 
-  const removeFromCart = (itemId) => {
-    setCart(prev => ({ items: prev.items.filter(i => i.id !== itemId) }))
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const orderNo = params.get('order')
+    if (orderNo) setMessage(`Order placed successfully. Order Number: ${orderNo}`)
+  }, [location.search])
+
+  const fetchCart = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    const res = await fetch('http://localhost:5000/api/cart', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const data = await res.json()
+    if (res.ok) setCart(data)
   }
 
-  const updateQuantity = (itemId, newQuantity) => {
-    setCart(prev => ({
-      items: prev.items.map(i => i.id === itemId ? { ...i, quantity: newQuantity } : i)
-    }))
+  useEffect(() => { fetchCart() }, [])
+
+  const removeFromCart = async (itemId) => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    const res = await fetch(`http://localhost:5000/api/cart/items/${itemId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) fetchCart()
   }
 
-  const clearCart = () => setCart({ items: [] })
-
-  const getTotalPrice = () => {
-    return cart.items.reduce((sum, i) => sum + (i.price * i.quantity), 0)
+  const updateQuantity = async (itemId, newQuantity) => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    const res = await fetch(`http://localhost:5000/api/cart/items/${itemId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ quantity: newQuantity })
+    })
+    if (res.ok) fetchCart()
   }
+
+  const clearCart = () => setCart({ items: [], subtotal: 0, tax: 0, total: 0 })
+
+  const getTotalPrice = () => cart.total || cart.subtotal
 
   const handleQuantityChange = (itemId, newQuantity) => {
     if (newQuantity < 1) {
@@ -30,8 +59,7 @@ const Cart = () => {
   }
 
   const handleCheckout = () => {
-    // This will be implemented when we add backend
-    alert('Checkout functionality will be implemented with backend integration!')
+    navigate('/payment')
   }
 
   return (
@@ -61,7 +89,10 @@ const Cart = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {cart.items.length === 0 ? (
+        {message && (
+          <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded mb-6">{message}</div>
+        )}
+        {(!cart.items || cart.items.length === 0) ? (
           /* Empty Cart */
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <svg className="mx-auto h-24 w-24 text-gray-400 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +118,7 @@ const Cart = () => {
                 <div className="px-6 py-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-900">
-                      Cart Items ({cart.items.length})
+                      Cart Items ({(cart.items || []).reduce((sum, i) => sum + (i.quantity || 0), 0)})
                     </h2>
                     {cart.items.length > 0 && (
                       <button
@@ -102,13 +133,31 @@ const Cart = () => {
 
                 <div className="divide-y divide-gray-200">
                   {cart.items.map((item) => (
-                    <div key={item.id} className="p-6">
+                    <div key={item.item} className="p-6">
                       <div className="flex items-center space-x-4">
                         {/* Item Image */}
-                        <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+                        <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-lg overflow-hidden">
+                          {item.image_url ? (
+                            <img
+                              src={
+                                item.image_url?.startsWith("http")
+                                  ? item.image_url
+                                  : `http://localhost:5000${item.image_url}`
+                              }
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
                         </div>
 
                         {/* Item Details */}
@@ -126,14 +175,14 @@ const Cart = () => {
                         {/* Price and Controls */}
                         <div className="flex flex-col items-end space-y-3">
                           <div className="text-right">
-                            <p className="text-lg font-semibold text-gray-900">₹{item.price}</p>
+                            <p className="text-lg font-semibold text-gray-900">₹{item.unitPrice}</p>
                             <p className="text-sm text-gray-500">per item</p>
                           </div>
 
                           {/* Quantity Controls */}
                           <div className="flex items-center space-x-2">
                             <button
-                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                              onClick={() => handleQuantityChange(item.item, item.quantity - 1)}
                               className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +191,7 @@ const Cart = () => {
                             </button>
                             <span className="w-8 text-center font-medium">{item.quantity}</span>
                             <button
-                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                              onClick={() => handleQuantityChange(item.item, item.quantity + 1)}
                               className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +202,7 @@ const Cart = () => {
 
                           {/* Remove Button */}
                           <button
-                            onClick={() => removeFromCart(item.id)}
+                            onClick={() => removeFromCart(item.item)}
                             className="text-red-600 hover:text-red-700 text-sm font-medium"
                           >
                             Remove
@@ -173,11 +222,11 @@ const Cart = () => {
                 
                 <div className="space-y-3 mb-6">
                   {cart.items.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
+                    <div key={item.item} className="flex justify-between text-sm">
                       <span className="text-gray-600">
                         {item.name} × {item.quantity}
                       </span>
-                      <span className="font-medium">₹{item.price * item.quantity}</span>
+                      <span className="font-medium">₹{item.unitPrice * item.quantity}</span>
                     </div>
                   ))}
                 </div>
@@ -185,21 +234,21 @@ const Cart = () => {
                 <div className="border-t border-gray-200 pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">₹{getTotalPrice()}</span>
+                    <span className="font-medium">₹{cart.subtotal}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Delivery Fee</span>
                     <span className="font-medium">₹20</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">GST (18%)</span>
-                    <span className="font-medium">₹{Math.round((getTotalPrice() + 20) * 0.18)}</span>
+                    <span className="text-gray-600">GST</span>
+                    <span className="font-medium">₹{cart.tax}</span>
                   </div>
                   <div className="border-t border-gray-200 pt-2">
                     <div className="flex justify-between">
                       <span className="text-lg font-semibold text-gray-900">Total</span>
                       <span className="text-lg font-bold text-gray-900">
-                        ₹{getTotalPrice() + 20 + Math.round((getTotalPrice() + 20) * 0.18)}
+                        ₹{cart.total || cart.subtotal + 20}
                       </span>
                     </div>
                   </div>

@@ -3,7 +3,6 @@ import Item from "../models/MenuItems.js";
 
 const router = express.Router();
 
-// ✅ Fetch all items
 router.get("/", async (req, res) => {
   try {
     const items = await Item.find();
@@ -14,7 +13,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ Fetch trending items
 router.get("/trending", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 4;

@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import BrowseItems from './pages/BrowseItems'
 import Cart from './pages/Cart'
+import Payment from './pages/Payment'
 import './App.css'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/browse" element={<BrowseItems />} />
             <Route path="/cart" element={<Cart />} />
+            <Route path="/payment" element={<Payment />} />
           </Routes>
         </div>
       </Router>
