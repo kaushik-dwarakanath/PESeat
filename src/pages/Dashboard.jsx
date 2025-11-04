@@ -2,14 +2,28 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 const Dashboard = () => {
-  // Fallback until cart context exists
-  const getTotalItems = () => 0
+  // Simple cart count synced from backend
+  const [cartCount, setCartCount] = useState(0)
+  const getTotalItems = () => cartCount
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [lastOrder, setLastOrder] = useState(null)
   const [trendingItems, setTrendingItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const fetchCartCount = async (token) => {
+    try {
+      if (!token) return
+      const res = await fetch('http://localhost:5000/api/cart', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) return
+      const cart = await res.json()
+      const count = (cart?.items || []).reduce((sum, li) => sum + (li.quantity || 0), 0)
+      setCartCount(count)
+    } catch {}
+  }
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -27,7 +41,10 @@ const Dashboard = () => {
 
         const data = await res.json();
         setUser(data.user);
-        await loadDashboardData(data.user.id || data.user._id);
+        await Promise.all([
+          loadDashboardData(data.user.id || data.user._id),
+          fetchCartCount(token)
+        ])
     };
     checkAuth()
   }, [navigate])
@@ -43,7 +60,7 @@ const Dashboard = () => {
         const lastOrderData = await lastOrderRes.json();
         const trendingData = await trendingItemsRes.json();
 
-        setLastOrder(lastOrderData[0] || null);
+        setLastOrder(lastOrderData || null);
         setTrendingItems(trendingData);
     } catch (err) {
         console.error(err);
@@ -138,37 +155,50 @@ const Dashboard = () => {
                 <h3 className="text-xl font-semibold text-gray-900">Last Purchase</h3>
                 {lastOrder && (
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    lastOrder.status === 'delivered' 
-                      ? 'bg-green-100 text-green-800' 
-                      : lastOrder.status === 'cancelled'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                    lastOrder.fulfillmentStatus === 'collected'
+                      ? 'bg-green-100 text-green-800'
+                      : lastOrder.fulfillmentStatus === 'cancelled'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {lastOrder.status?.replace('_', ' ').toUpperCase()}
+                    {(lastOrder.fulfillmentStatus || lastOrder.status || 'placed').toUpperCase()}
                   </span>
                 )}
               </div>
               
               {lastOrder ? (
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <div>
-                      <p className="font-medium text-gray-900">{lastOrder.item_name}</p>
-                      <p className="text-sm text-gray-500">Qty: {lastOrder.quantity}</p>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div className="space-y-1">
+                      <p className="font-medium text-gray-900">Order ID: <span className="font-bold">{lastOrder.orderNumber || lastOrder._id}</span></p>
+                      <p className="text-sm text-gray-500">Items: {lastOrder.items?.reduce((sum, li) => sum + (li.quantity || 0), 0) || 0}</p>
                     </div>
-                    <p className="font-semibold text-gray-900">₹{lastOrder.total_price}</p>
+                    <p className="font-semibold text-gray-900">₹{lastOrder.total ?? lastOrder.subtotal ?? 0}</p>
                   </div>
-                  
+
+                  {/* Full item breakdown */}
+                  <div className="divide-y divide-gray-100">
+                    {(lastOrder.items || []).map((li) => (
+                      <div key={li.item} className="flex items-center justify-between py-2">
+                        <div>
+                          <p className="text-gray-900">{li.name}</p>
+                          <p className="text-xs text-gray-500">Qty: {li.quantity} × ₹{li.unitPrice}</p>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">₹{(li.unitPrice || 0) * (li.quantity || 0)}</p>
+                      </div>
+                    ))}
+                  </div>
+
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-sm text-gray-500">
-                          Ordered on {new Date(lastOrder.created_at).toLocaleDateString()}
+                          Ordered on {new Date(lastOrder.createdAt || lastOrder.created_at).toLocaleString()}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Total</p>
-                        <p className="text-xl font-bold text-gray-900">₹{lastOrder.final_amount}</p>
+                        <p className="text-xl font-bold text-gray-900">₹{lastOrder.total ?? lastOrder.subtotal ?? 0}</p>
                       </div>
                     </div>
                   </div>

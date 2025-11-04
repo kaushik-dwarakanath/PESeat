@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
 import orderRoutes from "./routes/orders.js";
 import itemRoutes from "./routes/items.js";
+import cartRoutes from "./routes/cart.js";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use("/images", express.static("public/images"));
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/items", itemRoutes);
+app.use("/api/cart", cartRoutes);
 
 // MongoDB connection
 mongoose

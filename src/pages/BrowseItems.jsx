@@ -25,6 +25,19 @@ const BrowseItems = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  const fetchCartCount = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+      const res = await axios.get('http://localhost:5000/api/cart', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const cart = res.data
+      const count = (cart?.items || []).reduce((sum, li) => sum + (li.quantity || 0), 0)
+      setCartCount(count)
+    } catch {}
+  }
+
   useEffect(() => {
   const fetchItems = async () => {
       try {
@@ -38,6 +51,7 @@ const BrowseItems = () => {
       }
     }
     fetchItems()
+    fetchCartCount()
   }, [])
 
 
@@ -49,9 +63,23 @@ const BrowseItems = () => {
     return matchesSearch && matchesCategory
   })
 
-  const handleAddToCart = (item) => {
-    addToCart(item)
-    // You could add a toast notification here
+  const handleAddToCart = async (item) => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        alert('Please login to add items to cart')
+        return
+      }
+      const res = await axios.post('http://localhost:5000/api/cart/items', { itemId: item._id, quantity: 1 }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const cart = res.data
+      const count = (cart?.items || []).reduce((sum, li) => sum + (li.quantity || 0), 0)
+      setCartCount(count)
+    } catch (e) {
+      console.error('Add to cart failed', e)
+      alert('Failed to add to cart')
+    }
   }
 
 
@@ -144,11 +172,7 @@ const BrowseItems = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredItems.map((item) => (
-                <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-
-                  {/* Adding respective images to the BrowseItems page from the local images dir  */}
-                  {/* --------------------------------------- */}
-
+                <div key={item._id || item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="h-48 bg-gray-200 flex items-center justify-center">
                     <img
                       src={
@@ -164,9 +188,6 @@ const BrowseItems = () => {
                       }}
                     />
                   </div>
-
-                  {/* -------------------------------- */}
-                  
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">{item.name}</h3>
