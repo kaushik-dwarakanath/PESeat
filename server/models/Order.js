@@ -6,6 +6,7 @@ const lineItemSchema = new mongoose.Schema({
   unitPrice: { type: Number, required: true },
   quantity: { type: Number, required: true, min: 1 },
   lineTotal: { type: Number, required: true },
+  image_url: { type: String },
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({

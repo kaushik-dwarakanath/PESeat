@@ -51,6 +51,7 @@ router.post("/items", verifyJWT, async (req, res) => {
         unitPrice: item.price,
         quantity: Number(quantity) || 1,
         lineTotal: item.price * (Number(quantity) || 1),
+        image_url: item.image_url,
       });
     }
     recomputeTotals(cart);
