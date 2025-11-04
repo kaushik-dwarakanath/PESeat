@@ -15,6 +15,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
+app.use("/images", express.static("public/images"));
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);

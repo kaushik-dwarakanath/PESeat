@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import axios from 'axios'
+
 
 const BrowseItems = () => {
   // Local, temporary cart state to decouple from external context
@@ -9,7 +11,7 @@ const BrowseItems = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
 
-  // Mock data - will be replaced with API calls later
+  // Data called from canteenDB
   const categories = ['all', 'main-course', 'beverages', 'snacks', 'desserts']
   const categoryNames = {
     'all': 'All Items',
@@ -19,18 +21,26 @@ const BrowseItems = () => {
     'desserts': 'Desserts'
   }
 
-  const menuItems = [
-    { id: 1, name: 'Chicken Biryani', price: 180, category: 'main-course', description: 'Fragrant basmati rice with tender chicken and aromatic spices', rating: 4.5, image: '/api/placeholder/300/200' },
-    { id: 2, name: 'Veg Thali', price: 120, category: 'main-course', description: 'Complete vegetarian meal with dal, sabzi, rice, and roti', rating: 4.3, image: '/api/placeholder/300/200' },
-    { id: 3, name: 'Paneer Butter Masala', price: 160, category: 'main-course', description: 'Creamy tomato curry with soft paneer cubes', rating: 4.7, image: '/api/placeholder/300/200' },
-    { id: 4, name: 'Dal Makhani', price: 140, category: 'main-course', description: 'Rich black lentil curry cooked with butter and cream', rating: 4.4, image: '/api/placeholder/300/200' },
-    { id: 5, name: 'Coca Cola', price: 30, category: 'beverages', description: 'Refreshing carbonated soft drink', rating: 4.2, image: '/api/placeholder/300/200' },
-    { id: 6, name: 'Orange Juice', price: 40, category: 'beverages', description: 'Fresh squeezed orange juice', rating: 4.6, image: '/api/placeholder/300/200' },
-    { id: 7, name: 'Samosa', price: 25, category: 'snacks', description: 'Crispy fried pastry with spiced potato filling', rating: 4.1, image: '/api/placeholder/300/200' },
-    { id: 8, name: 'French Fries', price: 60, category: 'snacks', description: 'Golden crispy potato fries with seasoning', rating: 4.3, image: '/api/placeholder/300/200' },
-    { id: 9, name: 'Gulab Jamun', price: 35, category: 'desserts', description: 'Sweet milk dumplings in rose-flavored syrup', rating: 4.8, image: '/api/placeholder/300/200' },
-    { id: 10, name: 'Ice Cream', price: 50, category: 'desserts', description: 'Creamy vanilla ice cream', rating: 4.4, image: '/api/placeholder/300/200' }
-  ]
+  const [menuItems, setMenuItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+  const fetchItems = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/items")
+        setMenuItems(res.data)
+      } catch (err) {
+        console.error("Error fetching items:", err)
+        setError("Failed to load items")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchItems()
+  }, [])
+
+
 
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -43,6 +53,11 @@ const BrowseItems = () => {
     addToCart(item)
     // You could add a toast notification here
   }
+
+
+  if (loading) return <div className="text-center mt-10">Loading items...</div>
+  if (error) return <div className="text-center text-red-500 mt-10">{error}</div>
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -130,12 +145,27 @@ const BrowseItems = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredItems.map((item) => (
                 <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                  {/* Item Image */}
+
+                  {/* Adding respective images to the BrowseItems page from the local images dir  */}
+                  {/* --------------------------------------- */}
+
                   <div className="h-48 bg-gray-200 flex items-center justify-center">
-                    <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
+                    <img
+                      src={
+                        item.image_url?.startsWith("http")
+                          ? item.image_url
+                          : `http://localhost:5000${item.image_url}`
+                      }
+                      alt={item.name}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
+                      }}
+                    />
                   </div>
+
+                  {/* -------------------------------- */}
                   
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">
