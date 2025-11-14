@@ -4,7 +4,6 @@ import axios from 'axios'
 
 
 const BrowseItems = () => {
-  // Local, temporary cart state to decouple from external context
   const [cartCount, setCartCount] = useState(0)
   const addToCart = () => setCartCount(c => c + 1)
   const getTotalItems = () => cartCount

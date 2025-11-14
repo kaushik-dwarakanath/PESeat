@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard'
 import BrowseItems from './pages/BrowseItems'
 import Cart from './pages/Cart'
 import Payment from './pages/Payment'
+import StaffLogin from './pages/StaffLogin'
+import StaffDashboard from './pages/StaffDashboard'
 import './App.css'
 
 function App() {
@@ -21,6 +23,8 @@ function App() {
             <Route path="/browse" element={<BrowseItems />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/payment" element={<Payment />} />
+            <Route path="/staff-login" element={<StaffLogin />} />
+            <Route path="/staff-dashboard" element={<StaffDashboard />} />
           </Routes>
         </div>
       </Router>
