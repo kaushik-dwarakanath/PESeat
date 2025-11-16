@@ -6,6 +6,8 @@ import Item from "../models/MenuItems.js";
 const router = express.Router();
 
 async function getOrCreateCart(userId) {
+  // Allow users to add items to cart even if they have an active order
+  // The checkout route will prevent placing a new order if there's an active one
   let cart = await Order.findOne({ userId, status: "cart" });
   if (!cart) {
     cart = await Order.create({ userId, status: "cart", items: [], subtotal: 0, tax: 0, total: 0 });
@@ -29,6 +31,7 @@ router.get("/", verifyJWT, async (req, res) => {
     const cart = await getOrCreateCart(req.user.id);
     res.json(cart);
   } catch (err) {
+    if (err && err.statusCode) return res.status(err.statusCode).json({ message: err.message });
     res.status(500).json({ message: "Error fetching cart" });
   }
 });
@@ -58,6 +61,7 @@ router.post("/items", verifyJWT, async (req, res) => {
     await cart.save();
     res.json(cart);
   } catch (err) {
+    if (err && err.statusCode) return res.status(err.statusCode).json({ message: err.message });
     res.status(500).json({ message: "Error adding item to cart" });
   }
 });
@@ -66,7 +70,7 @@ router.patch("/items/:itemId", verifyJWT, async (req, res) => {
   try {
     const { itemId } = req.params;
     const { quantity } = req.body || {};
-    const cart = await getOrCreateCart(req.user.id);
+  const cart = await getOrCreateCart(req.user.id);
     const idx = cart.items.findIndex((li) => String(li.item) === String(itemId));
     if (idx === -1) return res.status(404).json({ message: "Item not in cart" });
     if (!quantity || quantity <= 0) {
@@ -78,6 +82,7 @@ router.patch("/items/:itemId", verifyJWT, async (req, res) => {
     await cart.save();
     res.json(cart);
   } catch (err) {
+    if (err && err.statusCode) return res.status(err.statusCode).json({ message: err.message });
     res.status(500).json({ message: "Error updating cart item" });
   }
 });
@@ -91,6 +96,7 @@ router.delete("/items/:itemId", verifyJWT, async (req, res) => {
     await cart.save();
     res.json(cart);
   } catch (err) {
+    if (err && err.statusCode) return res.status(err.statusCode).json({ message: err.message });
     res.status(500).json({ message: "Error removing cart item" });
   }
 });

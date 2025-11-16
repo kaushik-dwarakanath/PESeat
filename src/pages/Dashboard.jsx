@@ -195,6 +195,15 @@ const Dashboard = () => {
                         <p className="text-sm text-gray-500">
                           Ordered on {new Date(lastOrder.createdAt || lastOrder.created_at).toLocaleString()}
                         </p>
+                        {lastOrder.pickupTime && (
+                          <p className="text-sm text-blue-600 font-medium mt-1">
+                            Pickup time: {new Date(lastOrder.pickupTime).toLocaleTimeString('en-US', { 
+                              hour: '2-digit', 
+                              minute: '2-digit',
+                              hour12: true 
+                            })}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Total</p>

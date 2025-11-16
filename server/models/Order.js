@@ -16,6 +16,7 @@ const orderSchema = new mongoose.Schema({
   paymentStatus: { type: String, enum: ["pending", "paid", "failed", "refunded"], default: "pending" },
   orderDayKey: { type: String },
   orderNumber: { type: String },
+  pickupTime: { type: Date },
   items: { type: [lineItemSchema], default: [] },
   subtotal: { type: Number, default: 0 },
   tax: { type: Number, default: 0 },
