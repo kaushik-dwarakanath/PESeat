@@ -68,7 +68,6 @@ function StaffLogin() {
         setIsVerifying(true)
         setErrors({})
         try {
-            // Placeholder endpoint - backend will verify OTP and return token/user
             const res = await fetch('http://localhost:5000/api/auth/staff/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -79,12 +78,10 @@ function StaffLogin() {
                 throw new Error(data.message || 'OTP verification failed')
             }
 
-            // On success store token/user (backend will supply)
             if (data.token) localStorage.setItem('token', data.token)
             if (data.user) localStorage.setItem('user', JSON.stringify(data.user))
 
-            // Navigate to a dashboard. NOTE: repo currently has no staff dashboard route, so reuse /dashboard for now.
-            navigate('/dashboard')
+            navigate('/staff-dashboard')
         } catch (err) {
             setErrors({ general: err.message })
         } finally {
