@@ -8,7 +8,6 @@ const otpSchema = new mongoose.Schema({
   expiresAt: { type: Date, required: true },
 }, { timestamps: true });
 
-// TTL index: ensure expired otp documents are removed after some time
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model("Otp", otpSchema);

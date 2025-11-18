@@ -7,7 +7,8 @@ export const verifyJWT = (req, res, next) => {
     if (!token) return res.status(401).json({ message: "Unauthorized" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.id };
+    // Attach staff flag (if present in token payload)
+    req.user = { id: decoded.id, staff: decoded.staff === true };
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });

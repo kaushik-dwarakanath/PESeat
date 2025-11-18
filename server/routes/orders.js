@@ -42,6 +42,57 @@ router.get("/", verifyJWT, async (req, res) => {
   }
 });
 
+// Staff-only: get all placed orders (for staff dashboard)
+router.get("/staff", verifyJWT, async (req, res) => {
+  try {
+    if (!req.user?.staff) return res.status(403).json({ message: "Forbidden" });
+    // Return all orders that have been placed (not cart)
+    const orders = await Order.find({ status: "placed" }).sort({ pickupTime: 1, createdAt: 1 });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error('Error fetching staff orders', error);
+    res.status(500).json({ message: "Error fetching staff orders" });
+  }
+});
+
+// Staff-only: mark order as ready
+router.put('/:id/ready', verifyJWT, async (req, res) => {
+  try {
+    if (!req.user?.staff) return res.status(403).json({ message: 'Forbidden' });
+    const { id } = req.params;
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.status !== 'placed') return res.status(400).json({ message: 'Order is not in placed status' });
+    if (order.fulfillmentStatus === 'ready') return res.status(400).json({ message: 'Order already marked ready' });
+
+    order.fulfillmentStatus = 'ready';
+    await order.save();
+    res.status(200).json({ message: 'Order marked ready', order });
+  } catch (err) {
+    console.error('Error marking order ready', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Staff-only: mark order as collected/given (complete)
+router.put('/:id/collect', verifyJWT, async (req, res) => {
+  try {
+    if (!req.user?.staff) return res.status(403).json({ message: 'Forbidden' });
+    const { id } = req.params;
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.status !== 'placed') return res.status(400).json({ message: 'Order is not in placed status' });
+    if (order.fulfillmentStatus !== 'ready') return res.status(400).json({ message: 'Order must be ready before marking collected' });
+
+    order.fulfillmentStatus = 'collected';
+    await order.save();
+    res.status(200).json({ message: 'Order marked collected', order });
+  } catch (err) {
+    console.error('Error marking order collected', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.post("/checkout", verifyJWT, async (req, res) => {
   try {
     const userId = req.user.id;
