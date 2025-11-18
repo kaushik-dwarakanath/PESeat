@@ -42,11 +42,9 @@ router.get("/", verifyJWT, async (req, res) => {
   }
 });
 
-// Staff-only: get all placed orders (for staff dashboard)
 router.get("/staff", verifyJWT, async (req, res) => {
   try {
     if (!req.user?.staff) return res.status(403).json({ message: "Forbidden" });
-    // Return all orders that have been placed (not cart)
     const orders = await Order.find({ status: "placed" }).sort({ pickupTime: 1, createdAt: 1 });
     res.status(200).json(orders);
   } catch (error) {
@@ -55,7 +53,6 @@ router.get("/staff", verifyJWT, async (req, res) => {
   }
 });
 
-// Staff-only: mark order as ready
 router.put('/:id/ready', verifyJWT, async (req, res) => {
   try {
     if (!req.user?.staff) return res.status(403).json({ message: 'Forbidden' });
@@ -74,7 +71,6 @@ router.put('/:id/ready', verifyJWT, async (req, res) => {
   }
 });
 
-// Staff-only: mark order as collected/given (complete)
 router.put('/:id/collect', verifyJWT, async (req, res) => {
   try {
     if (!req.user?.staff) return res.status(403).json({ message: 'Forbidden' });
@@ -85,6 +81,7 @@ router.put('/:id/collect', verifyJWT, async (req, res) => {
     if (order.fulfillmentStatus !== 'ready') return res.status(400).json({ message: 'Order must be ready before marking collected' });
 
     order.fulfillmentStatus = 'collected';
+    order.status = 'completed';
     await order.save();
     res.status(200).json({ message: 'Order marked collected', order });
   } catch (err) {
@@ -98,10 +95,6 @@ router.post("/checkout", verifyJWT, async (req, res) => {
     const userId = req.user.id;
     const { pickupTime } = req.body;
     const cart = await Order.findOne({ userId, status: "cart" });
-    
-    //-------------------------------------------------------------------------------------------
-    // Prevent multiple active orders: user may not place a new order
-    // if they already have an order with status 'placed' that is not collected/cancelled.
     const activeOrder = await Order.findOne({
       userId,
       status: "placed",
@@ -111,39 +104,33 @@ router.post("/checkout", verifyJWT, async (req, res) => {
       return res.status(400).json({ message: "You already have an active order. Please collect it before placing a new one." });
     }
 
-    //-------------------------------------------------------------------------------------------
     if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    // Validate pickup time
     if (!pickupTime) {
       return res.status(400).json({ message: "Pickup time is required" });
     }
 
     const now = new Date();
     const selectedPickupTime = new Date(pickupTime);
-    
-    // Validate that pickup time is a valid date
+
     if (isNaN(selectedPickupTime.getTime())) {
       return res.status(400).json({ message: "Invalid pickup time format" });
     }
 
-    // Validate minimum 30 minutes from now
-    const minPickupTime = new Date(now.getTime() + 30 * 60 * 1000); // now + 30 minutes
+    const minPickupTime = new Date(now.getTime() + 30 * 60 * 1000);
     if (selectedPickupTime < minPickupTime) {
       return res.status(400).json({ 
         message: "Pickup time must be at least 30 minutes from the time of ordering" 
       });
     }
 
-    // Validate canteen hours: 8am to 5pm
     const openTime = new Date(selectedPickupTime);
     openTime.setHours(8, 0, 0, 0);
     const closeTime = new Date(selectedPickupTime);
     closeTime.setHours(17, 0, 0, 0);
 
-    // Check if pickup time is on the same day
     const pickupDate = new Date(selectedPickupTime);
     pickupDate.setHours(0, 0, 0, 0);
     const today = new Date(now);
@@ -155,12 +142,11 @@ router.post("/checkout", verifyJWT, async (req, res) => {
       });
     }
 
-    // Check if within canteen hours
     const pickupHour = selectedPickupTime.getHours();
     const pickupMinutes = selectedPickupTime.getMinutes();
     const pickupTimeMinutes = pickupHour * 60 + pickupMinutes;
-    const openTimeMinutes = 8 * 60; // 8:00 AM
-    const closeTimeMinutes = 17 * 60; // 5:00 PM (17:00)
+    const openTimeMinutes = 8 * 60;
+    const closeTimeMinutes = 17 * 60;
 
     if (pickupTimeMinutes < openTimeMinutes || pickupTimeMinutes > closeTimeMinutes) {
       return res.status(400).json({ 
@@ -168,7 +154,6 @@ router.post("/checkout", verifyJWT, async (req, res) => {
       });
     }
 
-    //-------------------------------------------------------------------------------------------
     cart.items.forEach((li) => { li.lineTotal = (li.unitPrice || 0) * (li.quantity || 0); });
     const subtotal = cart.items.reduce((sum, li) => sum + (li.lineTotal || 0), 0);
     cart.subtotal = subtotal;

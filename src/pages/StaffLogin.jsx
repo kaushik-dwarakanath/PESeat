@@ -36,7 +36,6 @@ function StaffLogin() {
         setIsLoading(true)
         setErrors({})
         try {
-            // Placeholder endpoint - backend will handle sending OTP
             const res = await fetch('http://localhost:5000/api/auth/staff/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -49,7 +48,7 @@ function StaffLogin() {
             }
 
             setIsOtpSent(true)
-            setCountdown(60) // 60s until resend
+            setCountdown(60)
         } catch (err) {
             setErrors({ general: err.message })
         } finally {
@@ -59,7 +58,6 @@ function StaffLogin() {
 
     const handleVerifyOtp = async (e) => {
         e.preventDefault()
-        // Basic OTP validation
         if (!otp) {
             setErrors({ otp: 'Enter the OTP' })
             return

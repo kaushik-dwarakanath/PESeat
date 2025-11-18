@@ -11,7 +11,7 @@ const lineItemSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true, required: true },
-  status: { type: String, enum: ["cart", "placed"], default: "cart", index: true },
+  status: { type: String, enum: ["cart", "placed", "completed"], default: "cart", index: true },
   fulfillmentStatus: { type: String, enum: ["making", "ready", "collected", "cancelled"], default: "making" },
   paymentStatus: { type: String, enum: ["pending", "paid", "failed", "refunded"], default: "pending" },
   orderDayKey: { type: String },

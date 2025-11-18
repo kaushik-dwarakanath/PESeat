@@ -8,25 +8,20 @@ const Payment = () => {
   const [error, setError] = useState('')
   const [availableTimeSlots, setAvailableTimeSlots] = useState([])
 
-  // Generate available time slots (30 min intervals from now, within 8am-5pm)
   useEffect(() => {
     const generateTimeSlots = () => {
       const now = new Date()
       const slots = []
       
-      // Calculate earliest allowed time (30 minutes from now)
       const earliestAllowed = new Date(now.getTime() + 30 * 60 * 1000)
       
-      // Set today's opening and closing times
       const openTime = new Date(now)
       openTime.setHours(8, 0, 0, 0)
       const closeTime = new Date(now)
       closeTime.setHours(17, 0, 0, 0)
       
-      // Start from the later of: earliest allowed or opening time
       let startTime = earliestAllowed > openTime ? earliestAllowed : openTime
       
-      // Round up to nearest 30 minutes
       const minutes = startTime.getMinutes()
       if (minutes > 30) {
         startTime.setMinutes(0, 0, 0)
@@ -37,10 +32,8 @@ const Payment = () => {
         startTime.setMinutes(0, 0, 0)
       }
       
-      // Generate slots until closing time
       const currentSlot = new Date(startTime)
       while (currentSlot <= closeTime) {
-        // Check if this slot is at least 30 minutes from now
         if (currentSlot >= earliestAllowed) {
           const timeString = currentSlot.toISOString()
           const displayTime = currentSlot.toLocaleTimeString('en-US', { 
@@ -50,7 +43,6 @@ const Payment = () => {
           })
           slots.push({ value: timeString, label: displayTime })
         }
-        // Move to next 30-minute slot
         currentSlot.setMinutes(currentSlot.getMinutes() + 30)
       }
       
@@ -72,7 +64,6 @@ const Payment = () => {
         return
       }
 
-      // Validate pickup time
       const selectedTime = new Date(pickupTime)
       const now = new Date()
       const minTime = new Date(now.getTime() + 30 * 60 * 1000)
