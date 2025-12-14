@@ -26,3 +26,7 @@ dist-ssr
 # Environment variables (SECRETS)
 .env
 .env.*
+
+# BUT allow example env files
+!.env.example
+!**/.env.example
